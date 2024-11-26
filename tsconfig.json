@@ -1,14 +1,10 @@
 {
   "compilerOptions": {
-    "target": "es6",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "target": "es5",
+    "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
-    "strict": false,
+    "strict": true,
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
     "esModuleInterop": true,
@@ -23,21 +19,16 @@
         "name": "next"
       }
     ],
-    "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./*"
-      ]
-    },
-    "strictNullChecks": true
+      "@/*": ["./*"]
+    }
   },
   "include": [
+    "process.d.ts",
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    "**/*.js",
-    ".next/types/**/*.ts"],
-  "exclude": [
-    "node_modules"
-  ]
+    ".next/types/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
 }

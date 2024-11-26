@@ -23,7 +23,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <CSPostHogProvider>
         <body
-          className={cn(inter.className, "mx-auto max-w-screen-lg")}>
+          className={cn(inter.className, "mx-auto max-w-screen-2xl")}>
           <Provider>
             <ThemeProvider
               attribute="class"

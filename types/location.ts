@@ -9,4 +9,5 @@ export interface LocationData {
   timezone?: string;
   asn?: string;
   org?: string;
+  count?: number;
 }

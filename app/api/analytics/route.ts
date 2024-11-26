@@ -42,7 +42,7 @@ export async function GET(req: Request): Promise<Response> {
 
   // Parse range
   const daysMap = { "7d": 7, "30d": 30, "90d": 90 };
-  const days = daysMap[range] || 7;
+  const days = daysMap[range as keyof typeof daysMap] || 7;
 
   const endDate = new Date();
   const startDate = new Date();
@@ -108,6 +108,16 @@ export async function GET(req: Request): Promise<Response> {
     {}
   );
 
+  // Process globe markers
+  const globeMarkers = clicks
+    .filter(
+      click => click.location.latitude && click.location.longitude
+    )
+    .map(click => ({
+      location: [click.location.latitude, click.location.longitude],
+      size: 0.03 // Adjust size if needed based on click importance
+    }));
+
   return NextResponse.json({
     labels,
     data,
@@ -121,33 +131,10 @@ export async function GET(req: Request): Promise<Response> {
     topCountries: Object.entries(topCountries)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5),
-    clickLocations: clicks
-      .filter(
-        click => click.location?.latitude && click.location?.longitude
-      )
-      .reduce<
-        Array<{ latitude: number; longitude: number; count: number }>
-      >((acc, click) => {
-        const existingLocation = acc.find(
-          loc =>
-            loc.latitude === click.location.latitude &&
-            loc.longitude === click.location.longitude
-        );
-
-        if (existingLocation) {
-          existingLocation.count += 1;
-        } else {
-          acc.push({
-            latitude: click.location.latitude,
-            longitude: click.location.longitude,
-            count: 1
-          });
-        }
-
-        return acc;
-      }, [])
+    globeMarkers // Include globe markers in the response
   });
 }
+
 function calculateGrowth(data: number[]): number {
   if (data.length < 2) return 0;
   const mostRecent = data[data.length - 1] || 0;

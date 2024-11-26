@@ -132,7 +132,9 @@ userSchema.methods.resetMonthlyQuota = async function () {
 };
 
 // Method to update usage stats
-userSchema.methods.updateUsageStats = async function (clicks) {
+userSchema.methods.updateUsageStats = async function (
+  clicks: number
+) {
   this.usageStats.totalClicks += clicks;
   if (this.usageStats.remainingQuota > 0) {
     this.usageStats.remainingQuota = Math.max(

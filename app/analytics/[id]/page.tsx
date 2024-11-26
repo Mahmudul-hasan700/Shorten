@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import Globe from "@/components/ui/globe";
+import createGlobe from "cobe";
 import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
 import {
@@ -16,42 +16,32 @@ import {
   TabsList,
   TabsTrigger
 } from "@/components/ui/tabs";
-import {
-  TrendingUp,
-  Globe as GlobeIcon,
-  Link2,
-  BarChart2,
-  Copy,
-  QrCode
-} from "lucide-react";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer
-} from "recharts";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+import { TrendingUp, Globe, Link2 } from "lucide-react";
+
+interface CobePreparedState {
+  width: number;
+  height: number;
+  phi: number;
+  theta: number;
+  dark: number;
+  diffuse: number;
+  mapSamples: number;
+  mapBrightness: number;
+  baseColor: number[];
+  markerColor: number[];
+  glowColor: number[];
+  [key: string]: any;
+}
 
 interface AnalyticsData {
-  urlCode: string;
-  originalUrl: string;
   labels: string[];
   data: number[];
-  dailyClickData: Array<{ date: string; clicks: number }>;
   totalClicks: number;
   growth: number;
-  deviceBreakdown: Record<string, number>;
-  browserBreakdown: Record<string, number>;
   topCountries: [string, number][];
   topReferrers: [string, number][];
-  clickLocations: Array<{
-    latitude: number;
-    longitude: number;
-    count: number;
-  }>;
+  browserBreakdown: Record<string, number>;
+  globeMarkers: GlobeMarker[];
 }
 
 interface GlobeMarker {
@@ -65,13 +55,72 @@ export default function UrlAnalyticsPage() {
   const { data: session } = useSession();
   const params = useParams();
   const [timeRange, setTimeRange] = useState("7d");
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [globeMarkers, setGlobeMarkers] = useState<GlobeMarker[]>([]);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  // Detect dark mode
+  useEffect(() => {
+    const checkDarkMode = () => {
+      setIsDarkMode(
+        document.documentElement.classList.contains("dark")
+      );
+    };
+
+    checkDarkMode();
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"]
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (session && params.id) {
       fetchAnalytics();
     }
   }, [session, params.id, timeRange]);
+
+  useEffect(() => {
+    if (analyticsData && canvasRef.current) {
+      let phi = 0;
+
+      const globe = createGlobe(canvasRef.current, {
+        devicePixelRatio: 2,
+        width: 700,
+        height: 700,
+        phi: 0,
+        theta: 0,
+        dark: isDarkMode ? 1 : 0,
+        diffuse: 1.2,
+        mapSamples: 16000,
+        mapBrightness: 6,
+        baseColor: isDarkMode
+          ? [0.1, 0.1, 0.1] // Very dark for dark mode
+          : [0.9, 0.9, 0.9], // Light gray for light mode
+        markerColor: [0.1, 0.8, 1],
+        glowColor: isDarkMode
+          ? [0.2, 0.2, 0.2] // Subtle glow in dark mode
+          : [1, 1, 1], // Bright glow in light mode
+        markers: globeMarkers.map(marker => ({
+          location: marker.location,
+          size: marker.size
+        })),
+        onRender: (state: Record<string, any>) => {
+          // Explicitly cast state to our prepared state type
+          const preparedState = state as CobePreparedState;
+          preparedState.phi = phi;
+          phi += 0.005;
+        }
+      });
+
+      return () => {
+        globe.destroy();
+      };
+    }
+  }, [globeMarkers, isDarkMode]);
 
   const fetchAnalytics = async () => {
     try {
@@ -81,40 +130,17 @@ export default function UrlAnalyticsPage() {
       if (response.ok) {
         const data = await response.json();
         setAnalyticsData(data);
-
-        // Create globe markers from click locations
-        const markers = data.clickLocations.map(location => ({
-          location: [location.latitude, location.longitude],
-          size: Math.min(location.count / 10, 0.1)
-        }));
-        setGlobeMarkers(markers);
+        setGlobeMarkers(data.globeMarkers);
       }
     } catch (error) {
       console.error("Error fetching analytics:", error);
-      toast.error("Failed to load analytics data");
-    }
-  };
-
-  const copyUrlCode = () => {
-    if (analyticsData?.urlCode) {
-      navigator.clipboard.writeText(
-        `${window.location.origin}/${analyticsData.urlCode}`
-      );
-      toast.success("Short URL copied to clipboard");
-    }
-  };
-
-  const generateQRCode = () => {
-    if (analyticsData?.urlCode) {
-      const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${window.location.origin}/${analyticsData.urlCode}`;
-      window.open(qrCodeUrl, "_blank");
     }
   };
 
   if (!analyticsData) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="animate-pulse text-gray-500">
+        <div className="animate-pulse text-gray-500 dark:text-gray-300">
           Loading analytics...
         </div>
       </div>
@@ -123,50 +149,19 @@ export default function UrlAnalyticsPage() {
 
   return (
     <div className="container mx-auto space-y-6 px-4 py-8">
-      <div className="flex flex-col items-center justify-between gap-3">
-        <div className="flex flex-col items-center space-x-4">
-          <h1 className="text-3xl font-bold text-gray-800">
-            URL Performance Analytics
-          </h1>
-          <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm" onClick={copyUrlCode}>
-              <Copy className="mr-2 h-4 w-4" /> Copy Short URL
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={generateQRCode}>
-              <QrCode className="mr-2 h-4 w-4" /> Generate QR Code
-            </Button>
-          </div>
-        </div>
-        <Tabs value={timeRange} onValueChange={setTimeRange} className="w-full">
-          <TabsList className="w-full">
-            <TabsTrigger value="7d" className="w-full">7 Days</TabsTrigger>
-            <TabsTrigger value="30d" className="w-full">30 Days</TabsTrigger>
-            <TabsTrigger value="90d" className="w-full" >90 Days</TabsTrigger>
+      <div className="flex flex-col items-center justify-between gap-3 md:flex-row">
+        <h1 className="text-2xl font-bold text-foreground dark:text-white md:text-3xl">
+          URL Performance Analytics
+        </h1>
+        <Tabs value={timeRange} onValueChange={setTimeRange}>
+          <TabsList>
+            <TabsTrigger value="7d">7 Days</TabsTrigger>
+            <TabsTrigger value="30d">30 Days</TabsTrigger>
+            <TabsTrigger value="90d">90 Days</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
 
-      {/* URL Information */}
-      <Card className="border-none bg-gradient-to-br from-blue-50 to-blue-100">
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="max-w-[600px] truncate text-xl font-semibold text-gray-800">
-                Original URL: {analyticsData.originalUrl}
-              </h2>
-              <p className="text-sm text-gray-600">
-                Short URL: {window.location.origin}/
-                {analyticsData.urlCode}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Performance Metrics */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         <Card className="border-none bg-gradient-to-br from-blue-50 to-blue-100 shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between">
@@ -192,7 +187,7 @@ export default function UrlAnalyticsPage() {
             <CardTitle className="text-sm font-medium text-gray-600">
               Top Country
             </CardTitle>
-            <GlobeIcon className="text-green-500" />
+            <Globe className="text-green-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-gray-800">
@@ -222,38 +217,11 @@ export default function UrlAnalyticsPage() {
         </Card>
       </div>
 
-      {/* Detailed Analytics */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Daily Clicks Chart */}
-        <Card className="border-none shadow-lg">
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="border-none shadow-lg dark:bg-gray-800/50">
           <CardHeader>
             <CardTitle className="flex items-center">
-              <BarChart2 className="mr-2 text-indigo-500" />
-              Daily Clicks
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={analyticsData.dailyClickData}>
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Line
-                  type="monotone"
-                  dataKey="clicks"
-                  stroke="#8884d8"
-                  strokeWidth={2}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Browser Breakdown */}
-        <Card className="border-none shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <GlobeIcon className="mr-2 text-indigo-500" />
+              <Globe className="mr-2 text-indigo-500" />
               Browser Breakdown
             </CardTitle>
           </CardHeader>
@@ -263,16 +231,16 @@ export default function UrlAnalyticsPage() {
               .map(([browser, count]) => (
                 <div
                   key={browser}
-                  className="flex items-center justify-between border-b py-2 last:border-b-0">
-                  <span className="capitalize text-gray-700">
+                  className="flex items-center justify-between border-b border-gray-200 py-2 last:border-b-0 dark:border-gray-700">
+                  <span className="capitalize text-primary dark:text-white">
                     {browser}
                   </span>
                   <div className="flex items-center">
-                    <span className="mr-2 font-medium text-gray-900">
+                    <span className="mr-2 font-medium text-primary dark:text-gray-300">
                       {count}
                     </span>
                     <div
-                      className="h-2 rounded-full bg-indigo-500"
+                      className="h-2 rounded-full bg-indigo-500 dark:bg-indigo-600"
                       style={{
                         width: `${(count / analyticsData.totalClicks) * 100}%`
                       }}
@@ -282,36 +250,25 @@ export default function UrlAnalyticsPage() {
               ))}
           </CardContent>
         </Card>
-      </div>
 
-      {/* Global Reach */}
-      <Card className="border-none shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <GlobeIcon className="mr-2 text-green-500" />
-            Global Reach
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="relative aspect-square">
-          <Globe
-            markers={globeMarkers}
-            config={{
-              width: 800,
-              height: 800,
-              devicePixelRatio: 2,
-              phi: 0,
-              theta: 0,
-              dark: 1,
-              diffuse: 1.2,
-              mapSamples: 16000,
-              mapBrightness: 6,
-              baseColor: [0.1, 0.1, 0.1],
-              markerColor: [0.1, 0.8, 1],
-              glowColor: [1, 1, 1]
-            }}
-          />
-        </CardContent>
-      </Card>
+        <Card className="overflow-hidden border-none shadow-lg dark:bg-gray-800/50">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Globe className="mr-2 text-green-500" />
+              Global Reach
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="relative flex items-center justify-center">
+            <div className="aspect-square w-full max-w-[500px]">
+              <canvas
+                ref={canvasRef}
+                className="h-full w-full object-contain mx-auto size-[500px] md:size-[600px]"
+                
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

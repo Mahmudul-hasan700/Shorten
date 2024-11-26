@@ -8,7 +8,7 @@ import User from "@/models/User";
 import { generateUniqueUsername } from "@/lib/generateUniqueUsername";
 
 export const authOptions: NextAuthOptions = {
-  adapter: MongoDBAdapter(dbConnect),
+  // adapter: MongoDBAdapter(dbConnect),
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,

@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,7 @@ import {
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 
-export default function SignIn() {
+function SignInForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -65,7 +65,7 @@ export default function SignIn() {
   };
 
   return (
-    <div className="container max-w-screen-md mx-auto flex h-screen flex-col items-center justify-center p-5">
+    <div className="container mx-auto flex h-screen max-w-screen-md flex-col items-center justify-center p-5">
       <Card className="w-full">
         <CardHeader className="space-y-1">
           <CardTitle className="text-center text-2xl font-bold">
@@ -184,5 +184,18 @@ export default function SignIn() {
         </CardFooter>
       </Card>
     </div>
+  );
+}
+
+export default function SignIn() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-screen items-center justify-center">
+          Loading...
+        </div>
+      }>
+      <SignInForm />
+    </Suspense>
   );
 }

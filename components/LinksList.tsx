@@ -27,8 +27,6 @@ export function LinksList() {
   useEffect(() => {
     if (session) {
       fetchLinks();
-    } else {
-      setIsLoading(false);
     }
   }, [session]);
 

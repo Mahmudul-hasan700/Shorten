@@ -68,6 +68,7 @@ export async function GET(
       referrer,
       location: {
         country: location?.country,
+        country_name: location?.country_name,
         city: location?.city,
         region: location?.region,
         latitude: location?.latitude

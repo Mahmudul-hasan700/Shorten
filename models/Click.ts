@@ -22,6 +22,7 @@ const clickSchema = new mongoose.Schema({
   referrer: String,
   location: {
     country: String,
+    country_name: String,
     city: String,
     region: String,
     latitude: Number,

@@ -65,8 +65,8 @@ export default function SignIn() {
   };
 
   return (
-    <div className="container flex h-screen flex-col items-center justify-center">
-      <Card className="w-full max-w-lg">
+    <div className="container max-w-screen-md mx-auto flex h-screen flex-col items-center justify-center p-5">
+      <Card className="w-full">
         <CardHeader className="space-y-1">
           <CardTitle className="text-center text-2xl font-bold">
             Welcome back

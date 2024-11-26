@@ -24,7 +24,7 @@ export async function getLocation(
     const data: LocationData = await response.json();
 
     // Validate essential fields
-    if (!data.country || !data.city) {
+    if (!data.country || !data.city || !data.country_name) {
       console.warn("Incomplete location data received");
       return null;
     }

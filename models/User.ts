@@ -32,8 +32,13 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: true,
       minlength: 8
+    },
+    provider: {
+      type: String,
+      required: true,
+      enum: ["email", "google", "github"],
+      default: "email"
     },
     avatarUrl: {
       type: String,
@@ -116,12 +121,12 @@ userSchema.methods.generateApiKey = function () {
   return apiKey;
 };
 
-userSchema.index({ 
-  'subscription.status': 1, 
-  'subscription.endDate': 1 
+userSchema.index({
+  "subscription.status": 1,
+  "subscription.endDate": 1
 });
 
-userSchema.methods.resetMonthlyQuota = async function() {
+userSchema.methods.resetMonthlyQuota = async function () {
   this.usageStats.remainingQuota = this.usageStats.monthlyQuota;
   await this.save();
 };

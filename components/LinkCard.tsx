@@ -61,7 +61,7 @@ export function LinkCard({ link, onDelete }: LinkCardProps) {
   };
 
   return (
-    <div className="overflow-hidden rounded-lg bg-white shadow-md transition-all duration-300 hover:shadow-lg">
+    <div className="overflow-hidden rounded-lg bg-background shadow-lg transition-all duration-300 hover:shadow-lg">
       <div className="p-6">
         <h2 className="mb-2 truncate text-2xl font-bold text-gray-800">
           {link.title || "Untitled Link"}

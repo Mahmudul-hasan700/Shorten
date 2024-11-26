@@ -12,7 +12,7 @@ const nextConfig = {
     NEXTAUTH_URL:
       "https://16742ba4-21fb-45f4-8e84-c7b52c6fb2f6-00-l80az4gsq7vk.kirk.replit.dev",
     NEXT_PUBLIC_BASE_URL:
-      "https://a077f958-fdc0-4536-b60c-2e2d864dfd9a-00-100who3a63l8u.pike.replit.dev",
+      "https://16742ba4-21fb-45f4-8e84-c7b52c6fb2f6-00-l80az4gsq7vk.kirk.replit.dev",
     NEXT_ENV: "development",
     NEXT_PUBLIC_POSTHOG_KEY:
       "phc_d5zPRbWhiVfhRs9xfjwhngZ86mIB4kPfhOfbcEGSrjc",

@@ -108,7 +108,7 @@ export async function POST(
     }
 
     // Generate username and avatar
-    const baseUsername = name.split(" ")[0] || email.split("@")[0];
+    const baseUsername = email.split("@")[0];
     const username = await generateUniqueUsername(baseUsername);
     const avatarBuffer = await generateGradientAvatar(name);
     const avatarUrl = await uploadAvatar(avatarBuffer, username);

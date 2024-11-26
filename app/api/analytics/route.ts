@@ -54,7 +54,6 @@ export async function GET(req: Request): Promise<Response> {
     timestamp: { $gte: startDate, $lte: endDate }
   }).sort({ timestamp: 1 });
 
-  // Daily clicks calculation
   const dailyClicks = clicks.reduce<Record<string, number>>(
     (acc, click) => {
       const date = click.timestamp.toISOString().split("T")[0];
@@ -72,7 +71,8 @@ export async function GET(req: Request): Promise<Response> {
   // Device breakdown
   const deviceBreakdown = clicks.reduce<Record<string, number>>(
     (acc, click) => {
-      acc[click.device || 'other'] = (acc[click.device || 'other'] || 0) + 1;
+      acc[click.device || "other"] =
+        (acc[click.device || "other"] || 0) + 1;
       return acc;
     },
     {}
@@ -81,7 +81,8 @@ export async function GET(req: Request): Promise<Response> {
   // Browser breakdown
   const browserBreakdown = clicks.reduce<Record<string, number>>(
     (acc, click) => {
-      acc[click.browser || 'unknown'] = (acc[click.browser || 'unknown'] || 0) + 1;
+      acc[click.browser || "unknown"] =
+        (acc[click.browser || "unknown"] || 0) + 1;
       return acc;
     },
     {}
@@ -90,7 +91,7 @@ export async function GET(req: Request): Promise<Response> {
   // Top referrers
   const topReferrers = clicks.reduce<Record<string, number>>(
     (acc, click) => {
-      const referrer = click.referrer || 'Direct';
+      const referrer = click.referrer || "Direct";
       acc[referrer] = (acc[referrer] || 0) + 1;
       return acc;
     },
@@ -100,7 +101,7 @@ export async function GET(req: Request): Promise<Response> {
   // Top countries
   const topCountries = clicks.reduce<Record<string, number>>(
     (acc, click) => {
-      const country = click.location?.country || 'Unknown';
+      const country = click.location?.country || "Unknown";
       acc[country] = (acc[country] || 0) + 1;
       return acc;
     },
@@ -119,10 +120,34 @@ export async function GET(req: Request): Promise<Response> {
       .slice(0, 5),
     topCountries: Object.entries(topCountries)
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
+      .slice(0, 5),
+    clickLocations: clicks
+      .filter(
+        click => click.location?.latitude && click.location?.longitude
+      )
+      .reduce<
+        Array<{ latitude: number; longitude: number; count: number }>
+      >((acc, click) => {
+        const existingLocation = acc.find(
+          loc =>
+            loc.latitude === click.location.latitude &&
+            loc.longitude === click.location.longitude
+        );
+
+        if (existingLocation) {
+          existingLocation.count += 1;
+        } else {
+          acc.push({
+            latitude: click.location.latitude,
+            longitude: click.location.longitude,
+            count: 1
+          });
+        }
+
+        return acc;
+      }, [])
   });
 }
-
 function calculateGrowth(data: number[]): number {
   if (data.length < 2) return 0;
   const mostRecent = data[data.length - 1] || 0;

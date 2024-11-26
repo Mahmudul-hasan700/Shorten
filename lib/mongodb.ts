@@ -1,41 +1,47 @@
 import mongoose from "mongoose";
 
-const uri = process.env.MONGODB_URI;
+const MONGODB_URI = process.env.MONGODB_URI;
 
-if (!uri) {
-  throw new Error("MONGODB_URI must be defined");
+if (!MONGODB_URI) {
+  throw new Error(
+    "Please define the MONGODB_URI environment variable inside .env.local"
+  );
 }
 
-const connectOptions = {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 5000,
-  socketTimeoutMS: 45000,
-  maxPoolSize: 10,
-  connectTimeoutMS: 10000
-};
+let cached = global.mongoose;
+
+if (!cached) {
+  cached = global.mongoose = { conn: null, promise: null };
+}
 
 async function dbConnect() {
-  if (mongoose.connection.readyState === 1) {
-    return mongoose.connection;
+  if (cached.conn) {
+    return cached.conn;
+  }
+
+  if (!cached.promise) {
+    const opts = {
+      bufferCommands: false,
+      maxPoolSize: 100000, // Adjust based on your needs
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000
+    };
+
+    cached.promise = mongoose
+      .connect(MONGODB_URI as string, opts)
+      .then(mongoose => {
+        return mongoose;
+      });
   }
 
   try {
-    await mongoose.connect(uri, connectOptions);
-    console.log("MongoDB connected successfully");
-    return mongoose.connection;
-  } catch (error) {
-    console.error("MongoDB connection error:", error);
-    throw error;
+    cached.conn = await cached.promise;
+  } catch (e) {
+    cached.promise = null;
+    throw e;
   }
+
+  return cached.conn;
 }
-
-mongoose.connection.on("error", error => {
-  console.error("MongoDB connection error:", error);
-});
-
-mongoose.connection.on("disconnected", () => {
-  console.warn("Lost MongoDB connection");
-});
 
 export default dbConnect;

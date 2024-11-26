@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "react-hot-toast";
@@ -21,6 +21,8 @@ export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,20 +30,23 @@ export default function SignIn() {
 
     try {
       const result = await signIn("credentials", {
-        redirect: false,
+        redirect: false, // Prevent automatic redirection
         email,
         password
       });
 
       if (result?.error) {
         toast.error(result.error);
-      } else {
-        toast.success("Successfully signed in!");
-        router.push("/dashboard");
+        setIsLoading(false);
+        return;
       }
+
+      toast.success("Successfully signed in!");
+
+      // Use the callback URL if available, otherwise default to dashboard
+      router.push(callbackUrl);
     } catch (error) {
       toast.error("Something went wrong. Please try again.");
-    } finally {
       setIsLoading(false);
     }
   };
@@ -49,7 +54,10 @@ export default function SignIn() {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
-      await signIn("google", { callbackUrl: "/dashboard" });
+      // Pass the callback URL to Google sign-in
+      await signIn("google", {
+        callbackUrl: callbackUrl
+      });
     } catch (error) {
       toast.error("Failed to sign in with Google");
       setIsLoading(false);

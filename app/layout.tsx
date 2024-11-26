@@ -5,7 +5,7 @@ import Header from "@/components/Header";
 import Provider from "./provider";
 import { Toaster } from "react-hot-toast";
 import { cn } from "@/lib/utils";
-
+import { CSPostHogProvider } from "./CSPostHogProvider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
@@ -21,21 +21,23 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={cn(inter.className, "mx-auto max-w-screen-lg")}>
-        <Provider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem>
-            <Header />
-            <main className="container w-full mx-auto">
-              {children}
-            </main>
-          </ThemeProvider>
-        </Provider>
-        <Toaster position="top-center" />
-      </body>
+      <CSPostHogProvider>
+        <body
+          className={cn(inter.className, "mx-auto max-w-screen-lg")}>
+          <Provider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem>
+              <Header />
+              <main className="container mx-auto w-full">
+                {children}
+              </main>
+            </ThemeProvider>
+          </Provider>
+          <Toaster position="top-center" />
+        </body>
+      </CSPostHogProvider>
     </html>
   );
 }

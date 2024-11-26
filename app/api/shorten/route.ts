@@ -5,6 +5,8 @@ import dbConnect from "@/lib/mongodb";
 import Url from "@/models/Url";
 import User from "@/models/User";
 import { z } from "zod";
+import cache from "@/lib/cache";
+import { rateLimit } from "@/lib/rateLimit";
 
 // Zod validation schema
 const urlSchema = z.object({
@@ -28,9 +30,6 @@ const urlSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    // Connect to database
-    await dbConnect();
-
     // Authenticate user
     const session = await getServerSession(authOptions);
     if (!session) {
@@ -39,6 +38,19 @@ export async function POST(req: NextRequest) {
         { status: 401 }
       );
     }
+
+    // Apply rate limiting
+    const identifier = session.user.email;
+    const { success } = await rateLimit(identifier);
+    if (!success) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded" },
+        { status: 429 }
+      );
+    }
+
+    // Connect to database
+    await dbConnect();
 
     // Parse and validate request body
     const body = await req.json();
@@ -97,6 +109,9 @@ export async function POST(req: NextRequest) {
     user.usageStats.remainingQuota -= 1;
     user.urls.push(newUrl._id);
     await user.save();
+
+    // Cache the new URL
+    cache.set(`url:${newUrl.shortCode}`, newUrl, 600); // Cache for 10 minutes
 
     // Return the shortened URL details
     return NextResponse.json(

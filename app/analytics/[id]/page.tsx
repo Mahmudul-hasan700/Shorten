@@ -24,11 +24,7 @@ import {
   TabsList,
   TabsTrigger
 } from "@/components/ui/tabs";
-import {
-  TrendingUp,
-  Globe,
-  Link2
-} from "lucide-react";
+import { TrendingUp, Globe, Link2 } from "lucide-react";
 
 interface AnalyticsData {
   labels: string[];
@@ -40,7 +36,8 @@ interface AnalyticsData {
 }
 
 export default function UrlAnalyticsPage() {
-  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
+  const [analyticsData, setAnalyticsData] =
+    useState<AnalyticsData | null>(null);
   const { data: session } = useSession();
   const params = useParams();
   const [timeRange, setTimeRange] = useState("7d");
@@ -67,7 +64,7 @@ export default function UrlAnalyticsPage() {
 
   if (!analyticsData) {
     return (
-      <div className="flex justify-center items-center h-screen">
+      <div className="flex h-screen items-center justify-center">
         <div className="animate-pulse text-gray-500">
           Loading analytics...
         </div>
@@ -81,8 +78,8 @@ export default function UrlAnalyticsPage() {
   }));
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="container mx-auto space-y-6 px-4 py-8">
+      <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-800">
           URL Performance Analytics
         </h1>
@@ -95,25 +92,25 @@ export default function UrlAnalyticsPage() {
         </Tabs>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <AnalyticCard 
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <AnalyticCard
           icon={<TrendingUp className="text-blue-500" />}
           title="Total Clicks"
           value={analyticsData.totalClicks.toLocaleString()}
-          subtitle={`${analyticsData.growth >= 0 ? '+' : ''}${analyticsData.growth.toFixed(2)}% growth`}
+          subtitle={`${analyticsData.growth >= 0 ? "+" : ""}${analyticsData.growth.toFixed(2)}% growth`}
         />
 
-        <AnalyticCard 
+        <AnalyticCard
           icon={<Globe className="text-green-500" />}
           title="Top Country"
-          value={analyticsData.topCountries[0]?.[0] || 'N/A'}
+          value={analyticsData.topCountries[0]?.[0] || "N/A"}
           subtitle={`${analyticsData.topCountries[0]?.[1] || 0} clicks`}
         />
 
-        <AnalyticCard 
+        <AnalyticCard
           icon={<Link2 className="text-purple-500" />}
           title="Top Referrer"
-          value={analyticsData.topReferrers[0]?.[0] || 'Direct'}
+          value={analyticsData.topReferrers[0]?.[0] || "Direct"}
           subtitle={`${analyticsData.topReferrers[0]?.[1] || 0} clicks`}
         />
       </div>
@@ -126,51 +123,59 @@ export default function UrlAnalyticsPage() {
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-              <XAxis 
-                dataKey="name" 
-                stroke="#888888" 
-                fontSize={12} 
+              <XAxis
+                dataKey="name"
+                stroke="#888888"
+                fontSize={12}
                 tickLine={false}
                 axisLine={false}
               />
-              <YAxis 
-                stroke="#888888" 
-                fontSize={12} 
+              <YAxis
+                stroke="#888888"
+                fontSize={12}
                 tickLine={false}
                 axisLine={false}
               />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#f9f9f9', 
-                  border: '1px solid #e0e0e0',
-                  borderRadius: '8px'
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "#f9f9f9",
+                  border: "1px solid #e0e0e0",
+                  borderRadius: "8px"
                 }}
               />
-              <Line 
-                type="monotone" 
-                dataKey="clicks" 
-                stroke="#3b82f6" 
+              <Line
+                type="monotone"
+                dataKey="clicks"
+                stroke="#3b82f6"
                 strokeWidth={2}
-                dot={{ r: 4, fill: '#3b82f6', stroke: 'white', strokeWidth: 2 }}
+                dot={{
+                  r: 4,
+                  fill: "#3b82f6",
+                  stroke: "white",
+                  strokeWidth: 2
+                }}
               />
             </LineChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Top Referrers</CardTitle>
           </CardHeader>
           <CardContent>
             {analyticsData.topReferrers.map(([referrer, count]) => (
-              <div 
-                key={referrer} 
-                className="flex justify-between py-2 border-b last:border-b-0"
-              >
-                <span className="text-gray-700 truncate">{referrer || 'Direct'}</span>
-                <span className="font-medium text-gray-900">{count}</span>
+              <div
+                key={referrer}
+                className="flex justify-between border-b py-2 last:border-b-0">
+                <span className="truncate text-gray-700">
+                  {referrer || "Direct"}
+                </span>
+                <span className="font-medium text-gray-900">
+                  {count}
+                </span>
               </div>
             ))}
           </CardContent>
@@ -182,12 +187,13 @@ export default function UrlAnalyticsPage() {
           </CardHeader>
           <CardContent>
             {analyticsData.topCountries.map(([country, count]) => (
-              <div 
-                key={country} 
-                className="flex justify-between py-2 border-b last:border-b-0"
-              >
+              <div
+                key={country}
+                className="flex justify-between border-b py-2 last:border-b-0">
                 <span className="text-gray-700">{country}</span>
-                <span className="font-medium text-gray-900">{count}</span>
+                <span className="font-medium text-gray-900">
+                  {count}
+                </span>
               </div>
             ))}
           </CardContent>
@@ -218,7 +224,9 @@ function AnalyticCard({
         {icon}
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold text-gray-800">{value}</div>
+        <div className="text-2xl font-bold text-gray-800">
+          {value}
+        </div>
         <p className="text-xs text-gray-500">{subtitle}</p>
       </CardContent>
     </Card>

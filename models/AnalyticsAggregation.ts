@@ -64,11 +64,14 @@ analyticsAggregationSchema.index({
   timeframe: 1,
   startDate: 1
 });
-analyticsAggregationSchema.index({ 
-  startDate: 1 
-}, { 
-  expireAfterSeconds: 365 * 24 * 60 * 60  // 1 year
-});
+analyticsAggregationSchema.index(
+  {
+    startDate: 1
+  },
+  {
+    expireAfterSeconds: 365 * 24 * 60 * 60 // 1 year
+  }
+);
 
 export default mongoose.models.AnalyticsAggregation ||
   mongoose.model("AnalyticsAggregation", analyticsAggregationSchema);

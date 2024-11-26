@@ -1,106 +1,131 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import dbConnect from "@/lib/mongodb";
 import Url from "@/models/Url";
 import User from "@/models/User";
-import { nanoid } from "nanoid";
+import { z } from "zod";
 
-export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
+// Zod validation schema
+const urlSchema = z.object({
+  originalUrl: z.string().url({ message: "Invalid URL format" }),
+  customAlias: z
+    .string()
+    .optional()
+    .refine(
+      val =>
+        val === undefined || (val.length >= 3 && val.length <= 30),
+      { message: "Custom alias must be 3-30 characters long" }
+    )
+    .refine(
+      val => val === undefined || /^[a-zA-Z0-9-_]+$/.test(val),
+      {
+        message:
+          "Custom alias can only contain alphanumeric characters, hyphens, and underscores"
+      }
+    )
+});
 
-  if (!session) {
-    return NextResponse.json(
-      { error: "Unauthorized" },
-      { status: 401 }
-    );
-  }
-
-  await dbConnect();
-
-  const { url, customAlias, title, description, tags, expiresAt } =
-    await req.json();
-
-  if (!url) {
-    return NextResponse.json(
-      { error: "URL is required" },
-      { status: 400 }
-    );
-  }
-
+export async function POST(req: NextRequest) {
   try {
-    // Check user's quota
-    const user = await User.findById(session.user.id);
+    // Connect to database
+    await dbConnect();
+
+    // Authenticate user
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json(
+        { message: "Authentication required" },
+        { status: 401 }
+      );
+    }
+
+    // Parse and validate request body
+    const body = await req.json();
+    const validatedData = urlSchema.parse(body);
+
+    // Find the current user
+    const user = await User.findOne({ email: session.user.email });
     if (!user) {
       return NextResponse.json(
-        { error: "User not found" },
+        { message: "User not found" },
         { status: 404 }
       );
     }
 
+    // Check user's URL quota
     if (user.usageStats.remainingQuota <= 0) {
       return NextResponse.json(
-        { error: "You have reached your monthly quota" },
+        { message: "Monthly URL creation quota exceeded" },
         { status: 403 }
       );
     }
 
-    // Ensure custom alias is unique
-    if (customAlias) {
-      const aliasExists = await Url.findOne({ customAlias });
-      if (aliasExists) {
+    // Check if custom alias already exists
+    if (validatedData.customAlias) {
+      const existingAlias = await Url.findOne({
+        $or: [
+          { shortCode: validatedData.customAlias },
+          { customAlias: validatedData.customAlias }
+        ]
+      });
+
+      if (existingAlias) {
         return NextResponse.json(
-          { error: "Custom alias is already in use" },
-          { status: 409 }
+          { message: "Custom alias already in use" },
+          { status: 400 }
         );
       }
     }
 
-    // Create and save the new shortened URL
+    // Create new URL entry
     const newUrl = new Url({
-      originalUrl: url,
-      shortCode: customAlias || nanoid(6),
-      customAlias,
-      user: session.user.id,
-      title,
-      description,
-      tags,
-      expiresAt
+      originalUrl: validatedData.originalUrl,
+      user: user._id,
+      ...(validatedData.customAlias && {
+        shortCode: validatedData.customAlias,
+        customAlias: validatedData.customAlias
+      }),
+      status: "active"
     });
 
+    // Save the URL
     await newUrl.save();
 
     // Update user's usage stats
     user.usageStats.totalUrls += 1;
     user.usageStats.remainingQuota -= 1;
+    user.urls.push(newUrl._id);
     await user.save();
 
-    const shortUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/${newUrl.shortCode}`;
-
-    return NextResponse.json({
-      id: newUrl._id,
-      shortUrl,
-      shortCode: newUrl.shortCode,
-      customAlias: newUrl.customAlias,
-      originalUrl: newUrl.originalUrl,
-      expiresAt: newUrl.expiresAt,
-      createdAt: newUrl.createdAt
-    });
+    // Return the shortened URL details
+    return NextResponse.json(
+      {
+        shortCode: newUrl.shortCode,
+        originalUrl: newUrl.originalUrl,
+        title: newUrl.title
+      },
+      { status: 201 }
+    );
   } catch (error) {
-    console.error("Error creating short URL:", error);
+    console.error("URL shortening error:", error);
 
-    if (error.code === 11000) {
+    // Handle Zod validation errors
+    if (error instanceof z.ZodError) {
       return NextResponse.json(
         {
-          error:
-            "Duplicate entry: custom alias or short code already exists"
+          message: "Validation Error",
+          errors: error.errors
         },
-        { status: 409 }
+        { status: 400 }
       );
     }
 
     return NextResponse.json(
-      { error: "Error creating short URL" },
+      {
+        message: "An error occurred while shortening the URL",
+        error: error instanceof Error ? error.message : String(error)
+      },
       { status: 500 }
     );
   }

@@ -1,5 +1,11 @@
 import UAParser from "ua-parser-js";
 
+interface UserAgentInfo {
+  browser: string;
+  os: string;
+  device: "desktop" | "mobile" | "tablet" | "other";
+}
+
 export function parseUserAgent(userAgent: string | null) {
   const parser = new UAParser(userAgent || "");
   return {

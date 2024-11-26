@@ -1,0 +1,38 @@
+[
+  {
+    "_id": { "$oid": "674338ba03186eb17247014b" },
+    "userId": "67432e2f1363b1283fee276d",
+    "originalUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide",
+    "shortCode": "abcDEF12",
+    "createdAt": { "$date": { "$numberLong": "1730780282123" } },
+    "clicks": { "$numberInt": "45" },
+    "lastClick": { "$date": { "$numberLong": "1731121617299" } }
+  },
+  {
+    "_id": { "$oid": "674338ba03186eb17247014c" },
+    "userId": "67432e2f1363b1283fee276d",
+    "originalUrl": "https://www.mongodb.com/docs/manual/reference/",
+    "shortCode": "zYX9876Q",
+    "createdAt": { "$date": { "$numberLong": "1730683882123" } },
+    "clicks": { "$numberInt": "28" },
+    "lastClick": { "$date": { "$numberLong": "1731025617299" } }
+  },
+  {
+    "_id": { "$oid": "674338ba03186eb17247014d" },
+    "userId": "67432e2f1363b1283fee276d",
+    "originalUrl": "https://nextjs.org/docs/getting-started",
+    "shortCode": "jklMN89T",
+    "createdAt": { "$date": { "$numberLong": "1730587482123" } },
+    "clicks": { "$numberInt": "62" },
+    "lastClick": { "$date": { "$numberLong": "1730949617299" } }
+  },
+  {
+    "_id": { "$oid": "674338ba03186eb17247014e" },
+    "userId": "67432e2f1363b1283fee276d",
+    "originalUrl": "https://stackoverflow.com/questions/tagged/javascript",
+    "shortCode": "pQR345UV",
+    "createdAt": { "$date": { "$numberLong": "1730491082123" } },
+    "clicks": { "$numberInt": "15" },
+    "lastClick": { "$date": { "$numberLong": "1730833617299" } }
+  }
+]

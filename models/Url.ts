@@ -14,6 +14,7 @@ interface IUrl extends Document {
   tags: string[];
   status: "active" | "inactive" | "expired" | "flagged";
   clicks: number;
+  expiresAt?: Date;
   lastClickAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -101,6 +102,7 @@ const urlSchema = new mongoose.Schema<IUrl>(
       type: Number,
       default: 0
     },
+    expiresAt: Date,
     lastClickAt: Date
   },
   {

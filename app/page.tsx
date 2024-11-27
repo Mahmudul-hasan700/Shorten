@@ -1,4 +1,4 @@
-import { UrlShortenerForm } from '@/components/UrlShortenerForm'
+import UrlShortenerForm from '@/components/UrlShortenerForm'
 
 export default function Home() {
   return (

@@ -1,28 +1,69 @@
 "use client";
-
-import { useState } from "react";
-import { useSession } from "next-auth/react";
+import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage
+} from "@/components/ui/form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
 import { toast } from "react-hot-toast";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
+import { Copy, Link } from "lucide-react";
 
-export function UrlShortenerForm() {
-  const [url, setUrl] = useState("");
-  const [customAlias, setCustomAlias] = useState("");
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [tags, setTags] = useState("");
-  const [expiresAt, setExpiresAt] = useState("");
-  const [shortUrl, setShortUrl] = useState("");
-  const [isLoading, setIsLoading] = useState(false); // Loading state
-  const { data: session } = useSession();
+// Updated Zod validation schema
+const urlSchema = z.object({
+  originalUrl: z.string().url({ message: "Invalid URL format" }),
+  customAlias: z
+    .string()
+    .optional()
+    .refine(
+      val =>
+        val === undefined ||
+        val.trim() === "" ||
+        (val.length >= 3 && val.length <= 30),
+      { message: "Custom alias must be 3-30 characters long" }
+    )
+    .refine(
+      val =>
+        val === undefined ||
+        val.trim() === "" ||
+        /^[a-z0-9-_]+$/.test(val),
+      {
+        message:
+          "Custom alias can only contain lowercase alphanumeric characters, hyphens, and underscores"
+      }
+    )
+    .transform(val => val?.trim() || undefined)
+});
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true); // Start loading
+export default function UrlShortenerForm() {
+  const [shortenedUrl, setShortenedUrl] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const form = useForm<z.infer<typeof urlSchema>>({
+    resolver: zodResolver(urlSchema),
+    defaultValues: {
+      originalUrl: "",
+      customAlias: ""
+    }
+  });
+
+  const onSubmit = async (data: z.infer<typeof urlSchema>) => {
+    setIsLoading(true);
+    setShortenedUrl("");
 
     try {
       const response = await fetch("/api/shorten", {
@@ -31,119 +72,119 @@ export function UrlShortenerForm() {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          url,
-          customAlias,
-          title,
-          description,
-          tags: tags.split(",").map(tag => tag.trim()),
-          expiresAt: expiresAt
-            ? new Date(expiresAt).toISOString()
-            : undefined
+          originalUrl: data.originalUrl,
+          ...(data.customAlias && { customAlias: data.customAlias })
         })
       });
 
-      const data = await response.json();
-      if (response.ok) {
-        setShortUrl(data.shortUrl);
-        toast.success(
-          "Your short URL has been generated successfully."
-        );
-      } else {
-        toast.error(
-          data.error || "An error occurred while shortening the URL."
-        );
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "URL shortening failed");
       }
+
+      const result = await response.json();
+
+      // Construct full shortened URL
+      const fullShortenedUrl = `${window.location.origin}/${result.shortCode}`;
+      setShortenedUrl(fullShortenedUrl);
+
+      toast.success("Your link is ready to be shared!");
     } catch (error) {
-      console.error(error);
-      toast.error("An unexpected error occurred.");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "An unknown error occurred"
+      );
     } finally {
-      setIsLoading(false); // End loading
+      setIsLoading(false);
+    }
+  };
+
+  const copyToClipboard = () => {
+    if (shortenedUrl) {
+      navigator.clipboard.writeText(shortenedUrl);
+      toast.success("Shortened URL copied to clipboard");
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <Label htmlFor="url">URL to shorten</Label>
-        <Input
-          id="url"
-          type="url"
-          value={url}
-          onChange={e => setUrl(e.target.value)}
-          placeholder="Enter your URL here"
-          required
-        />
-      </div>
-      <div>
-        <Label htmlFor="customAlias">Custom Alias (optional)</Label>
-        <Input
-          id="customAlias"
-          type="text"
-          value={customAlias}
-          onChange={e => setCustomAlias(e.target.value)}
-          placeholder="Enter custom alias"
-        />
-      </div>
-      <div>
-        <Label htmlFor="title">Title (optional)</Label>
-        <Input
-          id="title"
-          type="text"
-          value={title}
-          onChange={e => setTitle(e.target.value)}
-          placeholder="Enter title"
-        />
-      </div>
-      <div>
-        <Label htmlFor="description">Description (optional)</Label>
-        <Textarea
-          id="description"
-          value={description}
-          onChange={e => setDescription(e.target.value)}
-          placeholder="Enter description"
-        />
-      </div>
-      <div>
-        <Label htmlFor="tags">Tags (comma-separated, optional)</Label>
-        <Input
-          id="tags"
-          type="text"
-          value={tags}
-          onChange={e => setTags(e.target.value)}
-          placeholder="Enter tags"
-        />
-      </div>
-      <div>
-        <Label htmlFor="expiresAt">Expiration Date (optional)</Label>
-        <Input
-          id="expiresAt"
-          type="datetime-local"
-          value={expiresAt}
-          onChange={e => setExpiresAt(e.target.value)}
-        />
-      </div>
-      <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
-            Shortening...
-          </>
-        ) : (
-          "Shorten URL"
+    <Card className="mx-auto w-full max-w-md">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Link /> Shorten Your URL
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-4">
+            <FormField
+              control={form.control}
+              name="originalUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Original URL</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="https://example.com"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Enter the full URL you want to shorten
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="customAlias"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Custom Alias (Optional)</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="my-custom-link"
+                      {...field}
+                      value={field.value || ""}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Create a custom short link (3-30 characters)
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isLoading}>
+              {isLoading ? "Shortening..." : "Shorten URL"}
+            </Button>
+          </form>
+        </Form>
+
+        {shortenedUrl && (
+          <div className="mt-4 flex items-center space-x-2">
+            <Input
+              value={shortenedUrl}
+              readOnly
+              className="flex-grow"
+            />
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={copyToClipboard}>
+              <Copy className="h-4 w-4" />
+            </Button>
+          </div>
         )}
-      </Button>
-      {shortUrl && (
-        <div className="mt-4 rounded-md bg-green-100 p-4">
-          <p className="font-semibold">Your shortened URL:</p>
-          <a
-            href={shortUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-600 hover:underline">
-            {shortUrl}
-          </a>
-        </div>
-      )}
-    </form>
+      </CardContent>
+    </Card>
   );
 }

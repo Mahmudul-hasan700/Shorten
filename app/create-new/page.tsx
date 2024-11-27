@@ -1,14 +1,14 @@
-"use";
+"use client";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
-import UrlShortenerForm from "./UrlShortenerForm";
+import UrlShortenerForm from "@/components/UrlShortenerForm";
 
 export default async function UrlShortenerPage() {
   const session = await getServerSession(authOptions);
 
   if (!session) {
-    redirect("/auth/login");
+    redirect("/auth/signin");
   }
 
   return (

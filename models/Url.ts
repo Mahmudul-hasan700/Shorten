@@ -13,15 +13,20 @@ interface IUrl extends Document {
   description: string;
   tags: string[];
   status: "active" | "inactive" | "expired" | "flagged";
-  expiresAt?: Date;
-  password?: string;
   clicks: number;
   lastClickAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+
+  // Methods
   incrementClicks(): Promise<void>;
 }
 
 interface IUrlModel extends Model<IUrl> {
-  extractMetaTitle(url: string): Promise<string>;
+  extractMetaData(
+    url: string
+  ): Promise<{ title: string; description: string }>;
+  generateUniqueShortCode(): Promise<string>;
 }
 
 const urlSchema = new mongoose.Schema<IUrl>(
@@ -32,16 +37,12 @@ const urlSchema = new mongoose.Schema<IUrl>(
       trim: true,
       validate: {
         validator: function (v: string) {
-          const urlPattern = new RegExp(
-            "^(https?:\\/\\/)?" + // protocol
-              "((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|" + // domain name
-              "((\\d{1,3}\\.){3}\\d{1,3}))" + // OR ip (v4) address
-              "(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*" + // port and path
-              "(\\?[;&a-z\\d%_.~+=-]*)?" + // query string
-              "(\\#[-a-z\\d_]*)?$",
-            "i" // fragment locator
-          );
-          return urlPattern.test(v);
+          try {
+            new URL(v);
+            return true;
+          } catch {
+            return false;
+          }
         },
         message: "Please enter a valid URL"
       }
@@ -50,20 +51,21 @@ const urlSchema = new mongoose.Schema<IUrl>(
       type: String,
       required: true,
       unique: true,
-      default: () => nanoid(6),
-      trim: true
+      trim: true,
+      default: () => nanoid(6)
     },
     customAlias: {
       type: String,
       unique: true,
       sparse: true,
       trim: true,
+      lowercase: true,
       validate: {
-        validator: function (v: string) {
-          return v ? /^[a-zA-Z0-9-_]{3,30}$/.test(v) : true;
+        validator: function (v?: string) {
+          return v ? /^[a-z0-9-_]{3,30}$/.test(v) : true;
         },
         message:
-          "Custom alias must be 3-30 characters long and contain only alphanumeric characters, hyphens, and underscores"
+          "Custom alias must be 3-30 characters long and contain only lowercase alphanumeric characters, hyphens, and underscores"
       }
     },
     user: {
@@ -73,7 +75,13 @@ const urlSchema = new mongoose.Schema<IUrl>(
     },
     domain: {
       type: String,
-      default: "default"
+      default: function () {
+        try {
+          return new URL(this.originalUrl).hostname;
+        } catch {
+          return "unknown";
+        }
+      }
     },
     title: {
       type: String,
@@ -89,11 +97,6 @@ const urlSchema = new mongoose.Schema<IUrl>(
       enum: ["active", "inactive", "expired", "flagged"],
       default: "active"
     },
-    expiresAt: Date,
-    password: {
-      type: String,
-      select: false
-    },
     clicks: {
       type: Number,
       default: 0
@@ -105,40 +108,74 @@ const urlSchema = new mongoose.Schema<IUrl>(
   }
 );
 
-// Static method to extract meta title
-urlSchema.statics.extractMetaTitle = async function (
+// Static method to extract meta data
+urlSchema.statics.extractMetaData = async function (
   url: string
-): Promise<string> {
+): Promise<{ title: string; description: string }> {
   try {
     const fullUrl = url.startsWith("http") ? url : `https://${url}`;
-    const { data: html } = await axios.get(fullUrl);
+    const { data: html } = await axios.get(fullUrl, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+      },
+      timeout: 5000
+    });
 
     const $ = cheerio.load(html);
-    return $("title").text().trim() || "";
+    const title = $("title").text().trim() || "";
+    const description =
+      $('meta[name="description"]').attr("content") ||
+      $('meta[property="og:description"]').attr("content") ||
+      "";
+
+    return { title, description };
   } catch (error) {
-    console.warn(`Could not extract title for URL: ${url}`, error);
-    return "";
+    console.warn(`Could not extract metadata for URL: ${url}`, error);
+    return { title: "", description: "" };
   }
 };
 
-// Pre-save middleware to extract title if not provided
-urlSchema.pre<IUrl>("save", async function (next) {
-  if (!this.title && this.originalUrl) {
-    try {
-      const model = this.constructor as IUrlModel; // Explicitly cast the constructor
-      this.title = await model.extractMetaTitle(this.originalUrl);
-    } catch (error) {
-      console.warn("Title extraction failed", error);
+// Static method to generate a unique short code
+urlSchema.statics.generateUniqueShortCode = async function () {
+  let shortCode: string = nanoid(6);
+  let isUnique = false;
+
+  while (!isUnique) {
+    const existingUrl = await this.findOne({ shortCode });
+
+    if (!existingUrl) {
+      isUnique = true;
     }
   }
-  next();
-});
 
+  return shortCode;
+};
+
+// Method to increment clicks
 urlSchema.methods.incrementClicks = async function () {
   this.clicks += 1;
   this.lastClickAt = new Date();
   await this.save();
 };
+
+// Pre-save middleware to extract metadata if not provided
+urlSchema.pre<IUrl>("save", async function (next) {
+  if ((!this.title || !this.description) && this.originalUrl) {
+    try {
+      const model = this.constructor as IUrlModel;
+      const { title, description } = await model.extractMetaData(
+        this.originalUrl
+      );
+
+      if (!this.title) this.title = title;
+      if (!this.description) this.description = description;
+    } catch (error) {
+      console.warn("Metadata extraction failed", error);
+    }
+  }
+  next();
+});
 
 const Url =
   (mongoose.models.Url as IUrlModel) ||

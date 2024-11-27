@@ -23,7 +23,7 @@ import * as z from "zod";
 import { toast } from "react-hot-toast";
 import { Copy, Link } from "lucide-react";
 
-// Zod validation schema
+// Updated Zod validation schema
 const urlSchema = z.object({
   originalUrl: z.string().url({ message: "Invalid URL format" }),
   customAlias: z
@@ -31,16 +31,22 @@ const urlSchema = z.object({
     .optional()
     .refine(
       val =>
-        val === undefined || (val.length >= 3 && val.length <= 30),
+        val === undefined ||
+        val.trim() === "" ||
+        (val.length >= 3 && val.length <= 30),
       { message: "Custom alias must be 3-30 characters long" }
     )
     .refine(
-      val => val === undefined || /^[a-zA-Z0-9-_]+$/.test(val),
+      val =>
+        val === undefined ||
+        val.trim() === "" ||
+        /^[a-z0-9-_]+$/.test(val),
       {
         message:
-          "Custom alias can only contain alphanumeric characters, hyphens, and underscores"
+          "Custom alias can only contain lowercase alphanumeric characters, hyphens, and underscores"
       }
     )
+    .transform(val => val?.trim() || undefined)
 });
 
 export default function UrlShortenerForm() {
@@ -65,7 +71,10 @@ export default function UrlShortenerForm() {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify({
+          originalUrl: data.originalUrl,
+          ...(data.customAlias && { customAlias: data.customAlias })
+        })
       });
 
       if (!response.ok) {
@@ -75,7 +84,7 @@ export default function UrlShortenerForm() {
 
       const result = await response.json();
 
-      // Construct full shortened URL (adjust domain as needed)
+      // Construct full shortened URL
       const fullShortenedUrl = `${window.location.origin}/${result.shortCode}`;
       setShortenedUrl(fullShortenedUrl);
 

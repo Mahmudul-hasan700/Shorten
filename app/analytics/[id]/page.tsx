@@ -97,19 +97,14 @@ export default function UrlAnalyticsPage() {
         diffuse: 1.2,
         mapSamples: 16000,
         mapBrightness: 6,
-        baseColor: isDarkMode
-          ? [0.1, 0.1, 0.1] // Very dark for dark mode
-          : [0.9, 0.9, 0.9], // Light gray for light mode
+        baseColor: isDarkMode ? [0.1, 0.1, 0.1] : [0.9, 0.9, 0.9],
         markerColor: [0.1, 0.8, 1],
-        glowColor: isDarkMode
-          ? [0.2, 0.2, 0.2] // Subtle glow in dark mode
-          : [1, 1, 1], // Bright glow in light mode
+        glowColor: isDarkMode ? [0.2, 0.2, 0.2] : [1, 1, 1],
         markers: globeMarkers.map(marker => ({
           location: marker.location,
           size: marker.size
         })),
         onRender: (state: Record<string, any>) => {
-          // Explicitly cast state to our prepared state type
           const preparedState = state as CobePreparedState;
           preparedState.phi = phi;
           phi += 0.005;
@@ -262,8 +257,7 @@ export default function UrlAnalyticsPage() {
             <div className="aspect-square w-full max-w-[500px]">
               <canvas
                 ref={canvasRef}
-                className="h-full w-full object-contain mx-auto size-[500px] md:size-[600px]"
-                
+                className="size-[500px] md:size-[600px] mx-auto h-full w-full object-contain"
               />
             </div>
           </CardContent>

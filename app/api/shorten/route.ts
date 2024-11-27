@@ -16,16 +16,22 @@ const urlSchema = z.object({
     .optional()
     .refine(
       val =>
-        val === undefined || (val.length >= 3 && val.length <= 30),
+        val === undefined ||
+        val.trim() === "" ||
+        (val.length >= 3 && val.length <= 30),
       { message: "Custom alias must be 3-30 characters long" }
     )
     .refine(
-      val => val === undefined || /^[a-zA-Z0-9-_]+$/.test(val),
+      val =>
+        val === undefined ||
+        val.trim() === "" ||
+        /^[a-z0-9-_]+$/.test(val),
       {
         message:
-          "Custom alias can only contain alphanumeric characters, hyphens, and underscores"
+          "Custom alias can only contain lowercase alphanumeric characters, hyphens, and underscores"
       }
     )
+    .transform(val => val?.trim() || undefined)
 });
 
 export async function POST(req: NextRequest) {
@@ -73,7 +79,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if custom alias already exists
+    // Check if custom alias is provided and unique
     if (validatedData.customAlias) {
       const existingAlias = await Url.findOne({
         $or: [
@@ -118,7 +124,8 @@ export async function POST(req: NextRequest) {
       {
         shortCode: newUrl.shortCode,
         originalUrl: newUrl.originalUrl,
-        title: newUrl.title
+        title: newUrl.title,
+        ...(newUrl.customAlias && { customAlias: newUrl.customAlias })
       },
       { status: 201 }
     );

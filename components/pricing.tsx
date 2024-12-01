@@ -59,11 +59,11 @@ const pricingTiers = [
 export default function Pricing() {
   return (
     <div className="py-20 px-4 font-sans antialiased">
-      <div className="max-w-6xl mx-auto">
+      <div className="w-full mx-auto">
         {/* Header */}
         <div className="text-center mb-16">
-          <Badge
-            variant="outline"
+          <Badge 
+            variant="outline" 
             className="mb-6 px-4 py-1.5 bg-[#1A1A1A] text-[#A1A1A1] hover:bg-[#1A1A1A] border-[#2A2A2A] rounded-full tracking-wide text-xs font-medium"
           >
             Pricing
@@ -112,8 +112,8 @@ export default function Pricing() {
                     ${tier.ctaStyle === "golden"
                       ? `bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-black`
                       : tier.ctaStyle === "white"
-                        ? `bg-white hover:bg-gray-100 text-black`
-                        : `bg-[#1A1A1A] hover:bg-[#252525] text-white border border-[#2A2A2A] hover:border-${tier.accentColor}-400`
+                      ? `bg-white hover:bg-gray-100 text-black`
+                      : `bg-[#1A1A1A] hover:bg-[#252525] text-white border border-[#2A2A2A] hover:border-${tier.accentColor}-400`
                     }`}
                 >
                   {tier.ctaText}

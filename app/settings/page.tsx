@@ -193,7 +193,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="container mx-auto space-y-8 py-8">
+    <div className="container mx-auto space-y-8 p-5">
       <h1 className="text-3xl font-bold">Account Settings</h1>
 
       {error && (
@@ -364,16 +364,19 @@ export default function SettingsPage() {
                   from our servers.
                 </DialogDescription>
               </DialogHeader>
-              <DialogFooter>
+              <DialogFooter className="flex flex-col items-center gap-2">
                 <Button
                   variant="outline"
-                  onClick={() => setDeleteDialogOpen(false)}>
+                  onClick={() => setDeleteDialogOpen(false)}
+                  className="w-full">
                   Cancel
                 </Button>
                 <Button
                   variant="destructive"
                   onClick={handleDeleteAccount}
-                  disabled={loading}>
+                  disabled={loading}
+                  className="w-full"
+                  >
                   {loading && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}

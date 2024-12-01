@@ -23,14 +23,14 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <CSPostHogProvider>
         <body
-          className={cn(inter.className, "mx-auto max-w-screen-2xl")}>
+          className={cn(inter.className, "mx-auto max-w-screen-3xl")}>
           <Provider>
             <ThemeProvider
               attribute="class"
               defaultTheme="system"
               enableSystem>
               <Header />
-              <main className="container mx-auto w-full">
+              <main>
                 {children}
               </main>
             </ThemeProvider>

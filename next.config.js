@@ -7,6 +7,7 @@ const nextConfig = {
     GOOGLE_CLIENT_ID:
       "736642322529-u8btqrnn28ale2b2psb980nuaplpa558.apps.googleusercontent.com",
     GOOGLE_CLIENT_SECRET: "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",
+    NEXTAUTH_URL:"https://orange-guacamole-5wgv9v5466r37gq7-3000.app.github.dev",
     NEXTAUTH_SECRET:
       "7c985f1d478158c04ce8ac52e73b4a3e5223e0b7bf89996c57684d6fa288f912",
     NEXT_PUBLIC_POSTHOG_KEY:

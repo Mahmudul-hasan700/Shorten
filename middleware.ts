@@ -35,7 +35,7 @@ export default withAuth(
 
       return NextResponse.redirect(
         new URL(
-          `/auth/signin?from=${encodeURIComponent(from)}`,
+          `/auth/signin?callbckUrl=${encodeURIComponent(from)}`,
           request.url
         )
       );
